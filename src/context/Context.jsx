@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 import PropTypes from "prop-types";
 import run from "../config/gemini";
 
@@ -12,49 +12,40 @@ const ContextProvider = (props) => {
   const [loading, setLoading] = useState(false);
   const [resultData, setResultData] = useState("");
 
-  const onSent = async (customInput) => {
-    const inputToUse = customInput || input;
-    if (!inputToUse) return;
+  const delayPara = (index, nextWord) => {
+    setTimeout(() => {
+      setResultData((prev) => prev + nextWord);
+    }, 75 * index);
+  };
 
-    try {
-      setLoading(true);
-      setShowResult(true);
+  const onSent = async () => {
+    setLoading(true);
+    setShowResult(true);
+    setShowResult(true);
+    setRecentPrompt(input);
 
-      const response = await run(inputToUse);
-
-      // Only clear input and update prompts if we got a valid response
-      if (response) {
-        setResultData(response);
-
-        // Don't add initial prompt to history
-        if (inputToUse !== "What is react js?") {
-          setRecentPrompt(inputToUse);
-          setPrevPrompt((prev) => [...prev, inputToUse]);
-        }
-
-        // Only clear input if it wasn't a custom input (like the initial prompt)
-        if (!customInput) {
-          setInput("");
-        }
+    const response = await run(input);
+    let responseArray = response.split("**");
+    let newResponse;
+    for (let i = 0; i < responseArray.length; i++) {
+      if (i === 0 || i % 2 !== 1) {
+        newResponse += responseArray[i];
+      } else {
+        newResponse += "<b>" + responseArray[i] + "</b>";
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setResultData(
-        "An error occurred while fetching the response. Please try again."
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+    let newResponse2 = newResponse.split("*").join("</br>");
+    let newResponseArray = newResponse2.split(" ");
+    for (let i = 0; i < newResponseArray.length; i++) {
+      const nextWord = newResponseArray[i];
+      delayPara(i, nextWord + " ");
+    }
 
-  // Move this specific call outside of useEffect
-  const initialPrompt = () => {
-    onSent("What is react js?");
+    // setResultData(newResponse2);
+    setLoading(false);
+    setInput("");
+    console.log(newResponse2);
   };
-
-  useEffect(() => {
-    initialPrompt();
-  }, [initialPrompt]); // Empty dependency is fine now since initialPrompt is defined outside
 
   const contextValue = {
     prevPrompt,
